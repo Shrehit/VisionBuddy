@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.speech.tts.TextToSpeech;
 import android.util.SparseArray;
 import android.view.View;
 import android.widget.Button;
@@ -17,14 +19,17 @@ import com.google.android.gms.vision.text.Text;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements TextToSpeech.OnInitListener{
 
+    Activity thisActivity;
     ImageView imageView;
     Button button;
     TextView textView;
+    TextToSpeech tts;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        thisActivity = this;
         setContentView(R.layout.main);
         imageView = findViewById(R.id.image);
         textView = findViewById(R.id.text);
@@ -51,8 +56,14 @@ public class MainActivity extends Activity {
                         stringBuilder.append("\n");
                     }
                     textView.setText(stringBuilder.toString());
+                    tts = new TextToSpeech(getApplicationContext(), (TextToSpeech.OnInitListener)thisActivity);
                 }
             }
         });
+    }
+
+    @Override
+    public void onInit(int status) {
+        tts.speak(textView.getText(), TextToSpeech.QUEUE_FLUSH, null,null);
     }
 }
