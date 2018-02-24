@@ -2,10 +2,12 @@ package com.example.shrehitgoel.visionbuddy;
 
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.speech.tts.TextToSpeech;
 import android.util.SparseArray;
 import android.view.View;
@@ -24,8 +26,10 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     Activity thisActivity;
     ImageView imageView;
     Button button;
+    Button cameraButton;
     TextView textView;
     TextToSpeech tts;
+    Bitmap bitmap;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,7 +38,17 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         imageView = findViewById(R.id.image);
         textView = findViewById(R.id.text);
         button = findViewById(R.id.button);
-        final Bitmap bitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.hello);
+        cameraButton = findViewById(R.id.camera_button);
+        cameraButton.setOnClickListener(new View.OnClickListener()
+        {
+
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                startActivityForResult(intent, 0);
+            }
+        });
+        bitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.hello);
         imageView.setImageBitmap(bitmap);
 
         button.setOnClickListener(new View.OnClickListener() {
@@ -65,5 +79,12 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     @Override
     public void onInit(int status) {
         tts.speak(textView.getText(), TextToSpeech.QUEUE_FLUSH, null,null);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        bitmap = (Bitmap)data.getExtras().get("data");
+        imageView.setImageBitmap(bitmap);
     }
 }
