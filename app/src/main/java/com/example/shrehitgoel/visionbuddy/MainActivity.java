@@ -28,6 +28,7 @@ import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public class MainActivity extends Activity implements TextToSpeech.OnInitListener{
@@ -143,7 +144,12 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
             if (resultCode == RESULT_OK) {
                 Intent i=new Intent(Intent.ACTION_VIEW);
                 Uri outputUri=FileProvider.getUriForFile(this, AUTHORITY, output);
-                imageView.setImageURI(outputUri);
+                try {
+                    bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), outputUri);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                imageView.setImageBitmap(bitmap);
 
             }
         }
