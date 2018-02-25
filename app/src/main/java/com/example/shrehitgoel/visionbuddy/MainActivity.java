@@ -15,6 +15,7 @@ import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.speech.tts.TextToSpeech;
 import android.support.v4.content.FileProvider;
+import android.text.method.ScrollingMovementMethod;
 import android.util.SparseArray;
 import android.view.View;
 import android.widget.Button;
@@ -64,6 +65,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         setContentView(R.layout.main);
         imageView = findViewById(R.id.image);
         textView = findViewById(R.id.text);
+        textView.setMovementMethod(new ScrollingMovementMethod());
         button = findViewById(R.id.button);
         cameraButton = findViewById(R.id.camera_button);
         cameraButton.setOnClickListener(new View.OnClickListener()
