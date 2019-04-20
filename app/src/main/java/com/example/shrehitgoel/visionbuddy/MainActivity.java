@@ -1,5 +1,6 @@
 package com.example.shrehitgoel.visionbuddy;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
@@ -45,6 +46,10 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
             BuildConfig.APPLICATION_ID+".provider";
     private static final String PHOTOS="photos";
     private File output=null;
+    private static final String[] PERMS ={
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.CAMERA
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,13 +65,8 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
         new Thread(() -> {
             bitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.hello);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    imageView.setImageBitmap(bitmap);
-                }
-            });
-            tts = new TextToSpeech(getApplicationContext(), (TextToSpeech.OnInitListener)this);
+            runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+            tts = new TextToSpeech(getApplicationContext(), this);
             if (output.exists()) {
                 output.delete();
             }
@@ -79,7 +79,12 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         {
             @Override
             public void onClick(View v) {
+
+                if(!storagePermissionGranted())
+                    return;
+
                 new Thread(){
+
                     @Override
                     public void run() {
                         super.run();
@@ -148,6 +153,29 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         stopButton.setOnClickListener((v) -> {
             tts.stop();
         });
+    }
+
+    private  boolean storagePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED) {
+                return true;
+            } else {
+                requestPermissions(PERMS, 1000);
+                return false;
+            }
+        }
+        else {
+            return true;
+        }
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED)
+            cameraButton.performClick();
     }
 
     @Override
