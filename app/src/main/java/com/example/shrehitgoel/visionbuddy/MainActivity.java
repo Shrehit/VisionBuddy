@@ -11,7 +11,6 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.speech.tts.TextToSpeech;
 import android.support.v4.content.FileProvider;
@@ -24,25 +23,22 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.vision.Frame;
-import com.google.android.gms.vision.text.Text;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends Activity implements TextToSpeech.OnInitListener{
 
-    Activity thisActivity;
     ImageView imageView;
-    Button button;
+    Button readButton;
     Button cameraButton;
     TextView textView;
     TextToSpeech tts;
     Bitmap bitmap;
-    private static final String EXTRA_FILENAME=
-            "com.commonsware.android.camcon.EXTRA_FILENAME";
     private static final String FILENAME="CameraContentDemo.jpeg";
     private static final int CONTENT_REQUEST=1337;
     private static final String AUTHORITY=
@@ -53,109 +49,141 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        output=new File(new File(getFilesDir(), PHOTOS), FILENAME);
-
-        if (output.exists()) {
-            output.delete();
-        }
-        else {
-            output.getParentFile().mkdirs();
-        }
-        thisActivity = this;
         setContentView(R.layout.main);
+        output=new File(new File(getFilesDir(), PHOTOS), FILENAME);
         imageView = findViewById(R.id.image);
         textView = findViewById(R.id.text);
         textView.setMovementMethod(new ScrollingMovementMethod());
-        button = findViewById(R.id.button);
+        readButton = findViewById(R.id.readButton);
         cameraButton = findViewById(R.id.camera_button);
+        Button stopButton = findViewById(R.id.stop);
+
+        new Thread(() -> {
+            bitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.hello);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    imageView.setImageBitmap(bitmap);
+                }
+            });
+            tts = new TextToSpeech(getApplicationContext(), (TextToSpeech.OnInitListener)this);
+            if (output.exists()) {
+                output.delete();
+            }
+            else {
+                output.getParentFile().mkdirs();
+            }
+        }).start();
+
         cameraButton.setOnClickListener(new View.OnClickListener()
         {
-
             @Override
             public void onClick(View v) {
-                Intent i=new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                Uri outputUri= FileProvider.getUriForFile(getApplicationContext(), AUTHORITY, output);
-                i.putExtra(MediaStore.EXTRA_OUTPUT, outputUri);
+                new Thread(){
+                    @Override
+                    public void run() {
+                        super.run();
+                        Intent i=new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                        Uri outputUri= FileProvider.getUriForFile(getApplicationContext(), AUTHORITY, output);
+                        i.putExtra(MediaStore.EXTRA_OUTPUT, outputUri);
 
-                if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.LOLLIPOP) {
-                    i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                }
-                else if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.JELLY_BEAN) {
-                    ClipData clip=
-                            ClipData.newUri(getContentResolver(), "A photo", outputUri);
+                        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.LOLLIPOP) {
+                            i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        }
+                        else if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.JELLY_BEAN) {
+                            ClipData clip=
+                                    ClipData.newUri(getContentResolver(), "A photo", outputUri);
 
-                    i.setClipData(clip);
-                    i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                }
-                else {
-                    List<ResolveInfo> resInfoList =
-                            getPackageManager()
-                                    .queryIntentActivities(i, PackageManager.MATCH_DEFAULT_ONLY);
+                            i.setClipData(clip);
+                            i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        }
+                        else {
+                            List<ResolveInfo> resInfoList =
+                                    getPackageManager()
+                                            .queryIntentActivities(i, PackageManager.MATCH_DEFAULT_ONLY);
 
-                    for (ResolveInfo resolveInfo : resInfoList) {
-                        String packageName = resolveInfo.activityInfo.packageName;
-                        grantUriPermission(packageName, outputUri,
-                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                            for (ResolveInfo resolveInfo : resInfoList) {
+                                String packageName = resolveInfo.activityInfo.packageName;
+                                grantUriPermission(packageName, outputUri,
+                                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                            }
+                        }
+                        try {
+                            startActivityForResult(i, CONTENT_REQUEST);
+                        }
+                        catch (ActivityNotFoundException e) {
+                            Toast.makeText(getApplicationContext(), "msg_no_camera", Toast.LENGTH_LONG).show();
+                            finish();
+                        }
                     }
-                }
-                try {
-                    startActivityForResult(i, CONTENT_REQUEST);
-                }
-                catch (ActivityNotFoundException e) {
-                    Toast.makeText(getApplicationContext(), "msg_no_camera", Toast.LENGTH_LONG).show();
-                    finish();
-                }
+                }.start();
             }
         });
-        bitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.hello);
-        imageView.setImageBitmap(bitmap);
 
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                TextRecognizer textRecognizer = new TextRecognizer.Builder(getApplicationContext()).build();
-                if(!textRecognizer.isOperational())
-                {
-                    Toast.makeText(getApplicationContext(), "Error", Toast.LENGTH_LONG).show();
-                }
-                else {
-                    Frame frame = new Frame.Builder().setBitmap(bitmap).build();
-                    SparseArray<TextBlock> items = textRecognizer.detect(frame);
-                    StringBuilder stringBuilder = new StringBuilder();
-                    for(int i = 0; i< items.size();i++)
-                    {
-                        TextBlock item = items.valueAt(i);
-                        stringBuilder.append(item.getValue());
-                        stringBuilder.append("\n");
+        readButton.setOnClickListener(v -> {
+            new Thread(){
+                @Override
+                public void run() {
+                    super.run();
+                    TextRecognizer textRecognizer = new TextRecognizer.Builder(getApplicationContext()).build();
+                    if (!textRecognizer.isOperational()) {
+                        Toast.makeText(getApplicationContext(), "Error", Toast.LENGTH_LONG).show();
+                    } else {
+                        Frame frame = new Frame.Builder().setBitmap(bitmap).build();
+                        SparseArray<TextBlock> items = textRecognizer.detect(frame);
+                        StringBuilder stringBuilder = new StringBuilder();
+                        for (int i = 0; i < items.size(); i++) {
+                            TextBlock item = items.valueAt(i);
+                            stringBuilder.append(item.getValue());
+                            stringBuilder.append("\n");
+                        }
+                        runOnUiThread(() -> {
+                            textView.setText(stringBuilder.toString());
+                            tts.speak(textView.getText(), TextToSpeech.QUEUE_FLUSH, null, null);
+                        });
                     }
-                    textView.setText(stringBuilder.toString());
-                    tts = new TextToSpeech(getApplicationContext(), (TextToSpeech.OnInitListener)thisActivity);
                 }
-            }
+            }.start();
+        });
+        stopButton.setOnClickListener((v) -> {
+            tts.stop();
         });
     }
 
     @Override
     public void onInit(int status) {
-        tts.speak(textView.getText(), TextToSpeech.QUEUE_FLUSH, null,null);
+        if(status != TextToSpeech.ERROR)
+            tts.setLanguage(Locale.US);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CONTENT_REQUEST) {
-            if (resultCode == RESULT_OK) {
-                Intent i=new Intent(Intent.ACTION_VIEW);
-                Uri outputUri=FileProvider.getUriForFile(this, AUTHORITY, output);
-                try {
-                    bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), outputUri);
-                } catch (IOException e) {
-                    e.printStackTrace();
+        Activity act = this;
+        new Thread(){
+            @Override
+            public void run() {
+                super.run();
+                if (requestCode == CONTENT_REQUEST) {
+                    if (resultCode == RESULT_OK) {
+                        Intent i=new Intent(Intent.ACTION_VIEW);
+                        Uri outputUri=FileProvider.getUriForFile(act, AUTHORITY, output);
+                        try {
+                            bitmap = MediaStore.Images.Media.getBitmap(act.getContentResolver(), outputUri);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        act.runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+                    }
                 }
-                imageView.setImageBitmap(bitmap);
-
             }
-        }
+        }.start();
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        tts.stop();
+        tts.shutdown();
+    }
 }
