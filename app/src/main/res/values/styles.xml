@@ -5,7 +5,9 @@
         <!-- Customize your theme here. -->
         <item name="colorPrimary">#311b92</item>
         <item name="colorPrimaryDark">#000063</item>
-        <item name="colorSecondary">#e91e63</item>
+        <item name="colorAccent">#4caf50</item>
+        <item name="android:colorButtonNormal">#4caf50</item>
+
     </style>
 
 </resources>

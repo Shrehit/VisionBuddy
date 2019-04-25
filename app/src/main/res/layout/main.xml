@@ -1,50 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
+<android.support.design.widget.CoordinatorLayout
+    android:id="@+id/main_content"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical">
-    <ImageView
-        android:layout_gravity= "center_horizontal|top"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:scaleType="fitXY"
-        android:layout_marginStart="12dp"
-        android:layout_marginEnd="12dp"
-        android:layout_marginTop="12dp"
-        android:id="@+id/image"/>
-    <Button
-        android:layout_gravity = "center_horizontal"
-        android:text="Click To Read Image"
-        android:textSize="24sp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/readButton"/>
-    <Button
-        android:layout_gravity = "center_horizontal"
-        android:text="Take Photo"
-        android:textSize="24sp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/camera_button"/>
-    <Button
-        android:layout_gravity = "center_horizontal"
-        android:text="Stop Speaking"
-        android:textSize="24sp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/stop"/>
-    <TextView
-        android:id="@+id/text"
-        android:layout_gravity = "center_horizontal"
-        android:text=""
-        android:layout_below="@id/camera_button"
-        android:textSize="25sp"
-        android:layout_width="wrap_content"
-        android:scrollbars="vertical"
-        android:layout_height="120dp" />
+        android:layout_height="match_parent"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:orientation="vertical">
+        <ImageView
+            android:layout_gravity= "center_horizontal|top"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scaleType="fitXY"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginTop="12dp"
+            android:id="@+id/image"/>
+        <Button
+            android:layout_gravity = "center_horizontal"
+            android:text="Click To Read Image"
+            android:textSize="24sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/readButton"/>
+        <Button
+            android:layout_gravity = "center_horizontal"
+            android:text="Take Photo"
+            android:textSize="24sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/camera_button"/>
+        <Button
+            android:layout_gravity = "center_horizontal"
+            android:text="Stop Speaking"
+            android:textSize="24sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/stop"/>
+        <Button
+            android:layout_gravity = "center_horizontal"
+            android:text="Load from URL"
+            android:textSize="24sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/urlBut"/>
+        <TextView
+            android:id="@+id/text"
+            android:layout_gravity = "center_horizontal"
+            android:text=""
+            android:textSize="25sp"
+            android:layout_width="wrap_content"
+            android:scrollbars="vertical"
+            android:layout_height="120dp" />
+    </LinearLayout>
+
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"
@@ -53,4 +67,4 @@
         android:layout_marginEnd="12dp"
         android:layout_marginBottom="12dp"
         app:srcCompat="@android:drawable/ic_input_add" />
-</LinearLayout>
+</android.support.design.widget.CoordinatorLayout>
