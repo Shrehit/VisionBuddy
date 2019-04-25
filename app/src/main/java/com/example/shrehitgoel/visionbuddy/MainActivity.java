@@ -3,19 +3,24 @@ package com.example.shrehitgoel.visionbuddy;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
-import android.content.ClipData;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.speech.tts.TextToSpeech;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.FileProvider;
+import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.View;
 import android.widget.Button;
@@ -28,11 +33,14 @@ import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.List;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Locale;
 
-public class MainActivity extends Activity implements TextToSpeech.OnInitListener{
+public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener{
 
     ImageView imageView;
     Button readButton;
@@ -50,6 +58,8 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.CAMERA
     };
+    final String PIC_COUNTER = "Pic counter";
+    boolean savedImage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +72,18 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         readButton = findViewById(R.id.readButton);
         cameraButton = findViewById(R.id.camera_button);
         Button stopButton = findViewById(R.id.stop);
+
+        savedImage = false;
+        FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(view -> {
+            new Thread(() -> {
+                if (!savedImage && output.exists() && storagePermissionGranted())
+                {
+                    savedImage = true;
+                    createExternalStoragePublicPicture();
+                }
+            }).start();
+        });
 
         new Thread(() -> {
             bitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.hello);
@@ -92,27 +114,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
                         Uri outputUri= FileProvider.getUriForFile(getApplicationContext(), AUTHORITY, output);
                         i.putExtra(MediaStore.EXTRA_OUTPUT, outputUri);
 
-                        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.LOLLIPOP) {
-                            i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                        }
-                        else if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.JELLY_BEAN) {
-                            ClipData clip=
-                                    ClipData.newUri(getContentResolver(), "A photo", outputUri);
-
-                            i.setClipData(clip);
-                            i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                        }
-                        else {
-                            List<ResolveInfo> resInfoList =
-                                    getPackageManager()
-                                            .queryIntentActivities(i, PackageManager.MATCH_DEFAULT_ONLY);
-
-                            for (ResolveInfo resolveInfo : resInfoList) {
-                                String packageName = resolveInfo.activityInfo.packageName;
-                                grantUriPermission(packageName, outputUri,
-                                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                            }
-                        }
+                        i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                         try {
                             startActivityForResult(i, CONTENT_REQUEST);
                         }
@@ -155,6 +157,48 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         });
     }
 
+    void createExternalStoragePublicPicture() {
+        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+        int picCount = sharedPref.getInt(PIC_COUNTER, 0);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt(PIC_COUNTER, picCount + 1);
+        editor.apply();
+
+        File path = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES);
+        File file = new File(path, "Vision_" + picCount + ".jpg");
+
+        try {
+            // Make sure the Pictures directory exists.
+            path.mkdirs();
+
+            InputStream is = new FileInputStream(output);
+            OutputStream os = new FileOutputStream(file);
+            byte[] data = new byte[is.available()];
+            is.read(data);
+            os.write(data);
+            is.close();
+            os.close();
+
+            // Tell the media scanner about the new file so that it is
+            // immediately available to the user.
+            MediaScannerConnection.scanFile(this,
+                    new String[] { file.toString() }, null,
+                    new MediaScannerConnection.OnScanCompletedListener() {
+                        public void onScanCompleted(String path, Uri uri) {
+                            Log.i("ExternalStorage", "Scanned " + path + ":");
+                            Log.i("ExternalStorage", "-> uri=" + uri);
+                        }
+                    });
+
+            runOnUiThread(() -> Toast.makeText(MainActivity.this, "Saved Image", Toast.LENGTH_LONG).show());
+        } catch (IOException e) {
+            // Unable to create file, likely because external storage is
+            // not currently mounted.
+            Log.w("ExternalStorage", "Error writing " + file, e);
+        }
+    }
+
     private  boolean storagePermissionGranted() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -193,7 +237,6 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
                 super.run();
                 if (requestCode == CONTENT_REQUEST) {
                     if (resultCode == RESULT_OK) {
-                        Intent i=new Intent(Intent.ACTION_VIEW);
                         Uri outputUri=FileProvider.getUriForFile(act, AUTHORITY, output);
                         try {
                             bitmap = MediaStore.Images.Media.getBitmap(act.getContentResolver(), outputUri);
@@ -201,6 +244,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
                             e.printStackTrace();
                         }
                         act.runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+                        savedImage = false;
                     }
                 }
             }
