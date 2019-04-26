@@ -11,6 +11,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.drawable.Drawable;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
@@ -219,8 +220,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
         File path = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES);
-        File file = new File(path, "Vision_" + picCount + ".jpg");
-
+        File folder = new File(path,"Vision/");
+        folder.mkdirs();
+        File file = new File(folder, "pic" + picCount + ".jpg");
         try {
             // Make sure the Pictures directory exists.
             path.mkdirs();
@@ -296,7 +298,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        act.runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+                        Matrix matrix = new Matrix();
+                        matrix.postRotate(90);
+                        bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+                        act.runOnUiThread(() ->
+                        {imageView.setImageBitmap(bitmap);
+                        });
                         savedImage = false;
                     }
                 }
